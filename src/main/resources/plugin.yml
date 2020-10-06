@@ -1,0 +1,9 @@
+name: Intercart
+version: @version@
+main: net.phroa.intercart.Intercart
+api-version: 1.16
+load: STARTUP
+commands:
+  ic-build:
+    description: Start building a router
+    usage: /<command>
