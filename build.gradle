@@ -5,8 +5,16 @@ apply plugin: 'java'
 group = 'net.phroa'
 version = '1.0-SNAPSHOT'
 
-sourceCompatibility = '1.8'
-targetCompatibility = '1.8'
+sourceCompatibility = '1.14'
+targetCompatibility = '1.14'
+
+task copyPlugin(dependsOn: jar) {
+    copy {
+        from "${buildDir}/libs"
+        into 'server/plugins'
+        include 'intercart-' + version + '.jar'
+    }
+}
 
 repositories {
     mavenCentral()

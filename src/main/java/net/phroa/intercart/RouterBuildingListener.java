@@ -17,13 +17,9 @@ import org.bukkit.metadata.MetadataValue;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
+import java.util.Optional;
 
 public class RouterBuildingListener implements Listener, CommandExecutor {
-    private static final String META_BUILD_STATE = "ic-build-state";
-    private static final String META_ROUTER_INFO = "ic-router-info";
-    private static final String META_ATTACHED_ROUTER = "ic-attached-router";
-    private static final String META_CURRENT_ROUTER = "ic-current-router";
 
     private final Intercart intercart;
 
@@ -37,38 +33,23 @@ public class RouterBuildingListener implements Listener, CommandExecutor {
         if (clickedBlock == null) {
             return;
         }
-
-        Player player = e.getPlayer();
-
-        if (e.getItem() != null && e.getItem().getType() == Material.DIAMOND_HOE) {
-            for (MetadataValue value : e.getClickedBlock().getMetadata(META_ROUTER_INFO)) {
-                player.sendMessage(value.value().toString());
-            }
-            for (MetadataValue value : e.getClickedBlock().getMetadata(META_ATTACHED_ROUTER)) {
-                player.sendMessage(value.value().toString());
-            }
-        }
-
-        if (!player.hasMetadata(META_BUILD_STATE)) {
-            return;
-        }
-
-        BuildState currentState = BuildState.NONE;
-        List<MetadataValue> metadata = player.getMetadata(META_BUILD_STATE);
-        for (MetadataValue data : metadata) {
-            if (data.getOwningPlugin() == intercart && data.value() instanceof BuildState) {
-                currentState = (BuildState) data.value();
-                if (currentState == null) {
-                    currentState = BuildState.NONE;
-                }
-            }
-        }
-
         if (e.getAction() != Action.RIGHT_CLICK_BLOCK) {
             return;
         }
 
+        Player player = e.getPlayer();
+
+        if (e.getItem() != null && e.getItem().getType() == Material.DIAMOND_HOE) {
+            intercart.meta.<String>get(clickedBlock, Meta.META_ROUTER_INFO).ifPresent(player::sendMessage);
+            intercart.meta.<String>get(clickedBlock, Meta.META_ATTACHED_ROUTER).ifPresent(player::sendMessage);
+        }
+
+        BuildState currentState = intercart.meta.<BuildState>get(player, Meta.META_BUILD_STATE).orElse(BuildState.NONE);
+
         switch (currentState) {
+            case NONE:
+                return;
+
             case SELECT_ROUTER:
 
                 if (!(clickedBlock.getState() instanceof Chest)) {
@@ -76,15 +57,15 @@ public class RouterBuildingListener implements Listener, CommandExecutor {
                 }
 
                 player.sendMessage("Selected router at " + clickedBlock.getLocation());
-                if (clickedBlock.hasMetadata(META_ROUTER_INFO)) {
+                if (clickedBlock.hasMetadata(Meta.META_ROUTER_INFO)) {
                     player.sendMessage("This is already a router.  Selecting it to add interfaces to.");
                 } else {
                     RouterInfo routerInfo = new RouterInfo(player.getUniqueId(), new ArrayList<>());
-                    clickedBlock.setMetadata(META_ROUTER_INFO, new FixedMetadataValue(intercart, routerInfo));
+                    clickedBlock.setMetadata(Meta.META_ROUTER_INFO, new FixedMetadataValue(intercart, routerInfo));
                     player.sendMessage("Built a new router.");
                 }
-                player.setMetadata(META_BUILD_STATE, new FixedMetadataValue(intercart, BuildState.ADD_INTERFACE));
-                player.setMetadata(META_CURRENT_ROUTER, new FixedMetadataValue(intercart, clickedBlock.getLocation()));
+                intercart.meta.set(player, Meta.META_BUILD_STATE, BuildState.ADD_INTERFACE);
+                intercart.meta.set(player, Meta.META_CURRENT_ROUTER, clickedBlock.getLocation());
                 player.sendMessage("Click a powered rail");
                 break;
 
@@ -93,31 +74,27 @@ public class RouterBuildingListener implements Listener, CommandExecutor {
                     return;
                 }
 
-                if (!player.hasMetadata(META_CURRENT_ROUTER)) {
-                    player.sendMessage("You're not building a router.  What?");
-                    return;
-                }
-
-                Location router = null;
-                for (MetadataValue data : player.getMetadata(META_CURRENT_ROUTER)) {
-                    if (data.getOwningPlugin() == intercart && data.value() instanceof Location) {
-                        router = (Location) data.value();
-                    }
-                }
-
-                if (router == null) {
-                    player.sendMessage("The router you were building has since disappeared.");
-                    return;
-                }
+                Location router = intercart.meta.<Location>get(player, Meta.META_CURRENT_ROUTER).orElseThrow();
 
                 player.sendMessage("Selected interface at " + clickedBlock.getLocation());
-                if (clickedBlock.hasMetadata(META_ATTACHED_ROUTER)) {
-                    player.sendMessage("This is already a router.  Selecting it to add interfaces to.");
-                } else {
-                    clickedBlock.setMetadata(META_ATTACHED_ROUTER, new FixedMetadataValue(intercart, router));
-                    player.sendMessage("Attached to router at " + router);
+
+                Optional<Location> existingRouterLocation = intercart.meta.get(clickedBlock, Meta.META_ATTACHED_ROUTER);
+                if (existingRouterLocation.isPresent()) {
+                    player.sendMessage("This is already an interface with a router at " + existingRouterLocation.get());
+                    return;
                 }
-                player.setMetadata(META_BUILD_STATE, new FixedMetadataValue(intercart, BuildState.ADD_INTERFACE));
+
+                Block routerBlock = e.getClickedBlock().getWorld().getBlockAt(router);
+                intercart.meta.<RouterInfo, RouterInfo>map(routerBlock, Meta.META_ROUTER_INFO, info -> {
+                    RouterInfo updated = new RouterInfo(info);
+                    updated.addInterface(clickedBlock.getLocation());
+                    return updated;
+                });
+
+                intercart.meta.set(clickedBlock, Meta.META_ATTACHED_ROUTER, router);
+                player.sendMessage("Attached to router at " + router);
+
+                intercart.meta.set(player, Meta.META_BUILD_STATE, BuildState.ADD_INTERFACE);
                 player.sendMessage("\"/ic-build done\" to stop, or click another powered rail.");
                 break;
         }
@@ -133,24 +110,19 @@ public class RouterBuildingListener implements Listener, CommandExecutor {
             Player player = (Player) sender;
 
             if (args.length > 0 && args[0].equalsIgnoreCase("done")) {
-                player.removeMetadata(META_BUILD_STATE, intercart);
-                player.removeMetadata(META_CURRENT_ROUTER, intercart);
+                intercart.meta.remove(player, Meta.META_BUILD_STATE);
+                intercart.meta.remove(player, Meta.META_CURRENT_ROUTER);
                 player.sendMessage("Done.");
                 return true;
             }
 
-            if (player.hasMetadata("ic-build-state")) {
-                List<MetadataValue> metadata = player.getMetadata(META_BUILD_STATE);
-                for (MetadataValue data : metadata) {
-                    if (data.getOwningPlugin() == intercart && data.value() instanceof BuildState) {
-                        player.sendMessage("You're currently in state " + data.value());
-                        return true;
-                    }
-                }
-
+            Optional<BuildState> currentState = intercart.meta.get(player, Meta.META_BUILD_STATE);
+            if (currentState.isPresent()) {
+                player.sendMessage("You're currently in state " + currentState.get());
+                return true;
             }
 
-            player.setMetadata(META_BUILD_STATE, new FixedMetadataValue(intercart, BuildState.SELECT_ROUTER));
+            intercart.meta.set(player, Meta.META_BUILD_STATE, BuildState.SELECT_ROUTER);
             player.sendMessage("Select a chest to be a router.");
             return true;
         }
