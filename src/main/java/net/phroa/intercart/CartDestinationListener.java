@@ -1,5 +1,6 @@
 package net.phroa.intercart;
 
+import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -25,7 +26,7 @@ public class CartDestinationListener implements CommandExecutor, Listener {
         Player player = e.getPlayer();
         Minecart minecart = (Minecart) e.getRightClicked();
 
-        intercart.meta.<Integer>get(player, Meta.META_DESTINATION).ifPresent(destination -> {
+        intercart.meta.<Destination>get(player, Meta.META_DESTINATION).ifPresent(destination -> {
             intercart.meta.set(minecart, Meta.META_DESTINATION, destination);
             player.sendMessage("Set destination to " + destination);
             intercart.meta.remove(player, Meta.META_DESTINATION);
@@ -38,11 +39,20 @@ public class CartDestinationListener implements CommandExecutor, Listener {
             return false;
         }
         Player player = (Player) sender;
-        if (command.getName().equalsIgnoreCase("ic-go")) {
-            Integer dest = Integer.parseInt(args[0]);
-            player.sendMessage("Click a minecart");
-            intercart.meta.set(player, Meta.META_DESTINATION, dest);
+        if (!command.getName().equalsIgnoreCase("ic-go")) {
+            return false;
         }
+
+        if (args.length == 0) {
+            for (int i = 0; i < intercart.routers.size(); i++) {
+                player.sendMessage("Router " + i);
+                player.sendMessage(intercart.routers.get(i).toString());
+            }
+            return true;
+        }
+        Integer dest = Integer.parseInt(args[0]);
+        player.sendMessage("Click a minecart");
+        intercart.meta.set(player, Meta.META_DESTINATION, new Destination(dest));
         return false;
     }
 }

@@ -1,19 +1,22 @@
 package net.phroa.intercart;
 
-import org.bukkit.metadata.FixedMetadataValue;
-import org.bukkit.metadata.MetadataValue;
-import org.bukkit.metadata.Metadatable;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import org.bukkit.configuration.serialization.ConfigurationSerializable;
+import org.bukkit.configuration.serialization.ConfigurationSerialization;
+import org.bukkit.entity.Entity;
 
+import java.lang.reflect.Type;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
 public class Meta {
-    public static final String META_BUILD_STATE = "ic-build-state";
-    public static final String META_ROUTER_INFO = "ic-router-info";
-    public static final String META_ATTACHED_ROUTER = "ic-attached-router";
-    public static final String META_CURRENT_ROUTER = "ic-current-router";
-
     public static final String META_DESTINATION = "ic-destination";
+
+    private static final Type MAP_TYPE = new TypeToken<Map<String, Object>>() {}.getType();
+    private final Gson gson = new Gson();
+
     private final Intercart intercart;
 
     public Meta(Intercart intercart) {
@@ -21,40 +24,44 @@ public class Meta {
     }
 
     @SuppressWarnings("unchecked")
-    public <T> Optional<T> get(Metadatable target, String key) {
-        T data = null;
-
-        if (target.hasMetadata(key)) {
-            for (MetadataValue metadatum : target.getMetadata(key)) {
-                if (metadatum.getOwningPlugin() == intercart) {
-                    Object o = metadatum.value();
-                    if (o != null) {
-                        data = (T) o;
-                        break;
-                    }
+    public <T extends ConfigurationSerializable> Optional<T> get(Entity target, String key) {
+        for (String tag : target.getScoreboardTags()) {
+            if (tag.startsWith(key)) {
+                var data = tag.substring(tag.indexOf(':') + 1);
+                if (data.equals("null")) {
+                    return Optional.empty();
                 }
+                return Optional.ofNullable((T) ConfigurationSerialization.deserializeObject(gson.fromJson(data, MAP_TYPE)));
             }
         }
 
-        return Optional.ofNullable(data);
+        return Optional.empty();
     }
 
-    public <T> Optional<T> set(Metadatable target, String key, T value) {
+    public <T extends ConfigurationSerializable> Optional<T> set(Entity target, String key, T value) {
+        var data = value.serialize();
+        data.put(ConfigurationSerialization.SERIALIZED_TYPE_KEY, ConfigurationSerialization.getAlias(value.getClass()));
         Optional<T> old = get(target, key);
-        target.setMetadata(key, new FixedMetadataValue(intercart, value));
+
+        target.addScoreboardTag(key + ":" + gson.toJson(data, MAP_TYPE));
 
         return old;
     }
 
-    public <T> Optional<T> remove(Metadatable target, String key) {
+    public <T extends ConfigurationSerializable> Optional<T> remove(Entity target, String key) {
         Optional<T> old = get(target, key);
-        target.removeMetadata(key, intercart);
+        for (String tag : target.getScoreboardTags()) {
+            if (tag.startsWith(key)) {
+                target.removeScoreboardTag(tag);
+                break;
+            }
+        }
         return old;
     }
 
-    public <T, R> Optional<T> map(Metadatable target, String key, Function<T, R> callback) {
+    public <T extends ConfigurationSerializable, R extends ConfigurationSerializable> Optional<T> map(Entity target, String key, Function<T, R> callback) {
         Optional<T> old = get(target, key);
-        old.ifPresent(t -> target.setMetadata(key, new FixedMetadataValue(intercart, callback.apply(t))));
+        old.ifPresent(d -> set(target, key, d));
         return old;
     }
 }

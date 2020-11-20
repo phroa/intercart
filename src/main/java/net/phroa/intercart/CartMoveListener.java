@@ -8,7 +8,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.vehicle.VehicleBlockCollisionEvent;
 
 public class CartMoveListener implements Listener {
-    private Intercart intercart;
+    private final Intercart intercart;
 
     public CartMoveListener(Intercart intercart) {
         this.intercart = intercart;
@@ -20,17 +20,13 @@ public class CartMoveListener implements Listener {
             return;
         }
 
-        Minecart minecart = (Minecart) e.getVehicle();
-        Block rail = minecart.getLocation().getBlock();
-        intercart.meta.<Location>get(rail, Meta.META_ATTACHED_ROUTER).ifPresent(routerLocation -> {
-            Block router = routerLocation.getBlock();
-            intercart.meta.<RouterInfo>get(router, Meta.META_ROUTER_INFO).ifPresent(routerInfo -> {
-                Integer destination = intercart.meta.<Integer>get(minecart, Meta.META_DESTINATION).orElse(0);
+        var minecart = (Minecart) e.getVehicle();
+        var rail = minecart.getLocation().getBlock();
+        var router = intercart.routersByInterfaceLocation.get(rail.getLocation());
+        var destination = intercart.meta.<Destination>get(minecart, Meta.META_DESTINATION).orElseThrow();
 
-                Location out = routerInfo.getInterfaces().get(destination).add(0.5, 0, 0.5);
-                minecart.teleport(out);
-            });
-        });
+        var out = router.getInterfaces().get(destination.destination).add(0.5, 0, 0.5);
+        minecart.teleport(out);
 
     }
 }
