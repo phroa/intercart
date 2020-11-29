@@ -57,12 +57,12 @@ public final class Intercart extends JavaPlugin {
         }
         routersByLocation.put(router.location, router);
         for (Location i : router.interfaces) {
-            routersByInterfaceLocation.put(i, router);
+            routersByInterfaceLocation.put(i.toBlockLocation(), router);
         }
     }
 
     public void addInterface(Router router, Location iface) {
         router.addInterface(iface);
-        routersByInterfaceLocation.put(iface, router);
+        routersByInterfaceLocation.put(iface.toBlockLocation(), router);
     }
 }
