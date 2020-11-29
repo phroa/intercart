@@ -7,6 +7,7 @@ import org.bukkit.configuration.serialization.ConfigurationSerialization;
 import org.bukkit.entity.Entity;
 
 import java.lang.reflect.Type;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -41,8 +42,7 @@ public class Meta {
     public <T extends ConfigurationSerializable> Optional<T> set(Entity target, String key, T value) {
         var data = value.serialize();
         data.put(ConfigurationSerialization.SERIALIZED_TYPE_KEY, ConfigurationSerialization.getAlias(value.getClass()));
-        Optional<T> old = get(target, key);
-
+        Optional<T> old = remove(target, key);
         target.addScoreboardTag(key + ":" + gson.toJson(data, MAP_TYPE));
 
         return old;
@@ -50,10 +50,11 @@ public class Meta {
 
     public <T extends ConfigurationSerializable> Optional<T> remove(Entity target, String key) {
         Optional<T> old = get(target, key);
-        for (String tag : target.getScoreboardTags()) {
+        // Make a copy of the scoreboard tags set to avoid ConcurrentModificationException whilst iterating
+        var tags = new HashSet<>(target.getScoreboardTags());
+        for (String tag : tags) {
             if (tag.startsWith(key)) {
                 target.removeScoreboardTag(tag);
-                break;
             }
         }
         return old;
