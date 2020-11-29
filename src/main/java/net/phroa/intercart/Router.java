@@ -14,8 +14,8 @@ public class Router implements ConfigurationSerializable {
     final List<Location> interfaces;
 
     public Router(Map<String, Object> serialized) {
-        this.uuid = (UUID) serialized.get("uuid");
-        this.creator = (UUID) serialized.get("creator");
+        this.uuid = UUID.fromString((String) serialized.get("uuid"));
+        this.creator = UUID.fromString((String) serialized.get("creator"));
         this.location = (Location) serialized.get("location");
         this.interfaces = (List<Location>) serialized.get("interfaces");
     }
@@ -36,7 +36,7 @@ public class Router implements ConfigurationSerializable {
     }
 
     public void addInterface(Location newInterface) {
-        this.interfaces.add(newInterface);
+        this.interfaces.add(newInterface.toBlockLocation());
     }
 
     public List<Location> getInterfaces() {
@@ -56,8 +56,8 @@ public class Router implements ConfigurationSerializable {
     @Override
     public Map<String, Object> serialize() {
         return new HashMap<>() {{
-            put("uuid", uuid);
-            put("creator", creator);
+            put("uuid", uuid.toString());
+            put("creator", creator.toString());
             put("location", location);
             put("interfaces", interfaces);
         }};
