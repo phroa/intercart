@@ -24,6 +24,8 @@ public final class Intercart extends JavaPlugin {
     private final CartMoveListener cartMoveListener = new CartMoveListener(this);
     private final CartDestinationListener cartDestinationListener = new CartDestinationListener(this);
     private final RouterBuildingListener routerBuildingListener = new RouterBuildingListener(this);
+    private final RouterClickListener routerClickListener = new RouterClickListener(this);
+    private final RouteTableListener routeTableListener = new RouteTableListener(this);
 
     @Override
     public void onEnable() {
@@ -32,9 +34,12 @@ public final class Intercart extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(cartDestinationListener, this);
         Bukkit.getPluginManager().registerEvents(cartMoveListener, this);
         Bukkit.getPluginManager().registerEvents(routerBuildingListener, this);
+        Bukkit.getPluginManager().registerEvents(routerClickListener, this);
         getCommand("ic-build").setExecutor(routerBuildingListener);
+        getCommand("ic-table").setExecutor(routeTableListener);
         getCommand("ic-go").setExecutor(cartDestinationListener);
 
+        ConfigurationSerialization.registerClass(CIDR.class, "intercart-cidr");
         ConfigurationSerialization.registerClass(Destination.class, "intercart-destination");
         ConfigurationSerialization.registerClass(Router.class, "intercart-router");
 

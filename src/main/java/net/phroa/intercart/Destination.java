@@ -8,14 +8,14 @@ import java.util.Map;
 
 @SerializableAs("intercart-destination")
 public class Destination implements ConfigurationSerializable {
-    public final int destination;
+    public final String destination;
 
-    public Destination(int destination) {
+    public Destination(String destination) {
         this.destination = destination;
     }
 
     public Destination(Map<String, Object> serialized) {
-        this.destination = ((Double) serialized.get("destination")).intValue();
+        this.destination = (String) serialized.get("destination");
     }
 
     @Override

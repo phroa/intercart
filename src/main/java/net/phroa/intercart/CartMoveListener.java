@@ -24,12 +24,13 @@ public class CartMoveListener implements Listener {
         var minecart = (Minecart) e.getVehicle();
         var rail = minecart.getLocation().getBlock();
         var router = intercart.routersByInterfaceLocation.get(rail.getLocation().toBlockLocation());
-        var destination = intercart.meta.<Destination>get(minecart, Meta.META_DESTINATION).orElseThrow();
+        var destination = intercart.meta.<Destination>get(minecart, Meta.META_DESTINATION).orElse(new Destination("0.0.0.0"));
 
-        var out = router.getInterfaces().get(destination.destination);
-        minecart.teleport(computeDestination(minecart, out));
-        minecart.setVelocity(computeVelocity(minecart, out));
-
+        var out = router.route(destination);
+        if (out != null) {
+            minecart.teleport(computeDestination(minecart, out));
+            minecart.setVelocity(computeVelocity(minecart, out));
+        }
     }
 
     private Location computeDestination(Minecart minecart, Location interfaceLocation) {

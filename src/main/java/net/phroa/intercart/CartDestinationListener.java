@@ -50,9 +50,8 @@ public class CartDestinationListener implements CommandExecutor, Listener {
             }
             return true;
         }
-        Integer dest = Integer.parseInt(args[0]);
         player.sendMessage("Click a minecart");
-        intercart.meta.set(player, Meta.META_DESTINATION, new Destination(dest));
+        intercart.meta.set(player, Meta.META_DESTINATION, new Destination(args[0]));
         return false;
     }
 }
