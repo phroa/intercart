@@ -29,11 +29,21 @@ repositories {
 }
 
 dependencies {
-    compileOnly 'com.destroystokyo.paper:paper-api:1.16.4-R0.1-SNAPSHOT'
+    compile 'com.destroystokyo.paper:paper-api:1.16.4-R0.1-SNAPSHOT'
+    testCompile 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
 }
 
 processResources {
     from(sourceSets.main.resources.srcDirs) {
         filter ReplaceTokens, tokens: [version: version]
     }
+}
+
+test {
+    testLogging {
+        exceptionFormat = "full"
+        showStandardStreams = true
+    }
+
+    useJUnitPlatform()
 }

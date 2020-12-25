@@ -5,6 +5,7 @@ import org.bukkit.configuration.serialization.SerializableAs;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 @SerializableAs("intercart-cidr")
 public class CIDR implements ConfigurationSerializable {
@@ -12,8 +13,8 @@ public class CIDR implements ConfigurationSerializable {
     private final int mask;
 
     public CIDR(int address, int mask) {
-        this.address = address;
         this.mask = mask;
+        this.address = address & getSubnetMask();
     }
 
     public CIDR(Map<String, Object> serialized) {
@@ -24,7 +25,7 @@ public class CIDR implements ConfigurationSerializable {
 
     public static CIDR parse(String cidr) {
         try {
-            var parts = cidr.split("/");
+            var parts = cidr.split("/", -1);
             int mask;
             if (parts.length == 1) {
                 mask = 32;
@@ -32,6 +33,10 @@ public class CIDR implements ConfigurationSerializable {
                 throw new IllegalArgumentException("CIDR has more than 1 / in it");
             } else {
                 mask = Integer.parseInt(parts[1]);
+            }
+
+            if (mask < 0 || mask > 32) {
+                throw new IllegalArgumentException("CIDR mask must be between [0, 32]");
             }
 
             var host = parts[0].split("\\.");
@@ -75,8 +80,12 @@ public class CIDR implements ConfigurationSerializable {
         return mask;
     }
 
+    public int getSubnetMask() {
+        return (int) (0xFFFFFFFFL << (32 - mask));
+    }
+
     public boolean contains(CIDR other) {
-        var subnetMask = 0xFFFFFFFF << (32 - mask);
+        var subnetMask = getSubnetMask();
         return (this.address & subnetMask) == (other.address & subnetMask);
     }
 
@@ -85,5 +94,18 @@ public class CIDR implements ConfigurationSerializable {
         return new HashMap<>() {{
             put("cidr", toString());
         }};
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        CIDR cidr = (CIDR) o;
+        return address == cidr.address && mask == cidr.mask;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(address, mask);
     }
 }
