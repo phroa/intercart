@@ -81,6 +81,10 @@ public class Router implements ConfigurationSerializable {
         }};
     }
 
+    public Location route(String destination) {
+        return route(new Destination(destination));
+    }
+
     public Location route(Destination destination) {
         var cidr = CIDR.parse(destination.destination);
         // Test all interfaces, return one with most specific mask
