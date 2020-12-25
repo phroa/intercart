@@ -13,3 +13,6 @@ commands:
   ic-table:
     description: Edit route table
     usage: /<command>
+  ic-import:
+    description: Import track layout from image
+    usage: /<command> <filepath>

@@ -26,6 +26,7 @@ public final class Intercart extends JavaPlugin {
     private final RouterBuildingListener routerBuildingListener = new RouterBuildingListener(this);
     private final RouterClickListener routerClickListener = new RouterClickListener(this);
     private final RouteTableListener routeTableListener = new RouteTableListener(this);
+    private final ImportListener importListener = new ImportListener(this);
 
     @Override
     public void onEnable() {
@@ -38,6 +39,7 @@ public final class Intercart extends JavaPlugin {
         getCommand("ic-build").setExecutor(routerBuildingListener);
         getCommand("ic-table").setExecutor(routeTableListener);
         getCommand("ic-go").setExecutor(cartDestinationListener);
+        getCommand("ic-import").setExecutor(importListener);
 
         ConfigurationSerialization.registerClass(CIDR.class, "intercart-cidr");
         ConfigurationSerialization.registerClass(Destination.class, "intercart-destination");
