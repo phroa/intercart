@@ -24,6 +24,9 @@ public class CartMoveListener implements Listener {
         var minecart = (Minecart) e.getVehicle();
         var rail = minecart.getLocation().getBlock();
         var router = intercart.routersByInterfaceLocation.get(rail.getLocation().toBlockLocation());
+        if (router == null) {
+            return;
+        }
         var destination = intercart.meta.<Destination>get(minecart, Meta.META_DESTINATION).orElse(new Destination("0.0.0.0"));
 
         var out = router.route(destination);
