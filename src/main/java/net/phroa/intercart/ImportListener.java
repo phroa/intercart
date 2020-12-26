@@ -25,7 +25,15 @@ public class ImportListener implements CommandExecutor {
         }
 
         var i = new ImageLoader(Paths.get(intercart.getDataFolder().getPath(), args[0]).toString());
-        i.construct(((Player) sender).getTargetBlock(10).getLocation().add(0, 1, 0));
+        var player = (Player) sender;
+        var block = player.getTargetBlock(10);
+        if (block == null) {
+            return false;
+        }
+        var routers = i.construct(block.getLocation().add(0, 1, 0), player.getUniqueId());
+        for (var r : routers) {
+            intercart.addRouter(r);
+        }
 
         return true;
     }
