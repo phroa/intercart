@@ -1,5 +1,8 @@
 package net.phroa.intercart;
 
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -40,7 +43,7 @@ public class RouteTableListener implements CommandExecutor {
                         .collect(Collectors.toList());
                 for (int i = 0; i < table.size(); i++) {
                     var route = table.get(i);
-                    player.sendMessage("%03d - %s via %d".formatted(i, route.getKey(), route.getValue()));
+                    player.sendMessage(String.format("%03d - %s via %d", i, route.getKey(), route.getValue()));
                 }
             }
             case "add" -> {
@@ -55,10 +58,18 @@ public class RouteTableListener implements CommandExecutor {
                 } else {
                     var iface = router.getInterfaces().indexOf(dest);
                     player.sendMessage("Route via interface " + iface);
+                    timeBlockChange(player, router.getInterfaces().get(iface), Material.GOLD_BLOCK);
                 }
             }
         }
 
         return true;
+    }
+
+    void timeBlockChange(Player player, Location location, Material block) {
+        player.sendBlockChange(location, Bukkit.createBlockData(block));
+        Bukkit.getScheduler().runTaskLater(intercart, () -> {
+            player.sendBlockChange(location, location.getBlock().getBlockData());
+        }, 5 * 20);
     }
 }
