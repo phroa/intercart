@@ -8,12 +8,8 @@ version = '1.0-SNAPSHOT'
 sourceCompatibility = '1.14'
 targetCompatibility = '1.14'
 
-task copyPlugin(dependsOn: jar) {
-    copy {
-        from "${buildDir}/libs"
-        into 'server/plugins'
-        include 'intercart-' + version + '.jar'
-    }
+tasks.withType(Jar) {
+    destinationDirectory = file('server/plugins')
 }
 
 repositories {
